@@ -6,12 +6,15 @@ Clear-Host
 $regex = "(ftp\.hp\.com/pub/softpaq/.*?/.*?exe)"
 $TempDIR = "C:\Temp"
 $TempDIRFA = "C:\Temp\1829371298037"
+$TempDIRFAEXE = "C:\Temp\1829371298037\exe"
 $Tempdw01 = "C:\Temp\1829371298037\dw01.txt"
 $Tempdw02 = "C:\Temp\1829371298037\dw02.txt"
 $Tempdw03 = "C:\Temp\1829371298037\dw03.txt"
 $Tempdw04 = "C:\Temp\1829371298037\dw04.txt"
 $Tempdw05 = "C:\Temp\1829371298037\dw05.txt"
 $Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
+$Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
+$Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
 
 function Show-Menu {
     param (
@@ -31,8 +34,8 @@ function Show-Menu {
     Write-Host "4: Press '4' to Start Installation (HP)"
     Write-Host "5: Press '5' to Start Installation (Lenovo)"
     Write-Host "6: Press '6' to Start Installation (Microsoft Cooperation)"
-        
     Write-Host "Q: Press 'Q' to quit."
+    Write-Host
 }
 
 Function Add_Hostname {
@@ -61,7 +64,12 @@ Function Start_Installation_HP {
     if (Test-Path -Path $TempDIRFA){
     }
     else {
-        New-Item $TempDIRFA -ItemType Directory
+        New-Item $TempDIRFA -ItemType Directory 
+    }
+    if (Test-Path -Path $TempDIRFAEXE){
+    }
+    else {
+        New-Item $TempDIRFAEXE -ItemType Directory 
     }
     
     Write-Host Script-INFO: Getting Information about the HP Support Assistant -ForegroundColor Green
@@ -84,24 +92,31 @@ Function Start_Installation_HP {
     start-sleep 3
     try {
         $hp_sa = Get-Content -Path $Tempdw06
-        Start-BitsTransfer -Source $hp_sa -Destination $TempDIR
+        Start-BitsTransfer -Source $hp_sa -Destination $TempDIRFAEXE
+        Get-ChildItem -Path $TempDIRFAEXE | Where { ! $_.PSIsContainer } | Select FullName | Out-File $Tempdw07
+        (gc $Tempdw07) | ? {$_.trim() -ne "" } | set-content $Tempdw07
+        Get-Content $Tempdw07 -tail 1 > $Tempdw08
+
         
         Write-Host Script-INFO: Download successfull. Filelocation: C:\Temp -ForegroundColor Green
         Write-Host ..........................................................................
         Write-Host Script-INFO: Installation of HP Support Assistant will start now -ForegroundColor Green
+        $EXE = Get-Content -Path $Tempdw08
+        Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
+        Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
     }
     catch {
         Write-Host "Script-INFO: Error downloading Information Support Assistant" -ForegroundColor white -BackgroundColor red
         exit
     }
         
-    break
+    
 
     try {
         Export-StartLayout -Path "$TempDIRFA\LayoutModification.json" 
     }
     catch {
-        Write-Host NO
+        Write-Host 1
     }
 
 }
