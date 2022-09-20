@@ -64,12 +64,14 @@ Function Join_Domain {
     Restart-Computer -Force -Wait 5
 }
 Function Join_Workgroup {
-    Write-Host pass
+    Write-Host "Script-INFO: Joining rubnergroup.local" -ForegroundColor white -BackgroundColor green
+    $NewDomain = "workgroup"
+    Add-Computer -DomainName $NewDomain
+    Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
+    Restart-Computer -Force -Wait 5
 }
 Function Start_Installation_HP {
-    write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
-    write-Host ..........................................................................
-    write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
+    
 
     if (Test-Path -Path $TempDIR){
         Write-Host "Script-INFO: C:\Temp exists" -ForegroundColor Green
@@ -94,6 +96,32 @@ Function Start_Installation_HP {
         New-Item $TempDIRFAEXE -ItemType Directory 
     }
     
+    
+        
+    
+    try {
+        Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
+        $client = new-object System.Net.Webclient
+        $client.DownloadFile("https://github.com/cron1s/w11install/archive/refs/heads/main.zip", "$TempDIRFADATA\Pack.zip")
+        Expand-Archive -Path "$TempDIRFADATA\pack.zip" -DestinationPath $TempDIRFADATA -Force
+        
+        Start-Sleep 10
+        Write-Host "Script-Info: Modification File Download success" -ForegroundColor white -BackgroundColor Green
+        Write-Host "Script-Info: Beginning to applying start.bin" -ForegroundColor white -BackgroundColor Green
+        $Current_User_Name = [System.Environment]::UserName
+        $Current_User_ModificationFile = "C:\Users\$Current_User_Name"
+        robocopy "$Start_bin_Dir" "$Default_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_defaul.txt
+        robocopy "$Start_bin_Dir" "$Current_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_current.txt
+
+    }
+    catch {
+        Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
+    }
+
+    write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
+    write-Host ..........................................................................
+    write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
+
     Write-Host "Script-INFO: Getting Information about the HP Support Assistant" -ForegroundColor Green
 
     $hp = Invoke-WebRequest "https://hpsa-redirectors.hpcloud.hp.com/common/hpsaredirector.js?_=1663262489609" -UseBasicParsing -OutFile $Tempdw01
@@ -123,7 +151,7 @@ Function Start_Installation_HP {
         Write-Host ..........................................................................
         Write-Host "Script-INFO: Installation of HP Support Assistant will start now" -ForegroundColor Green
         $EXE = Get-Content -Path $Tempdw08
-        #Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
+        Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
         Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
     }
     catch {
@@ -131,26 +159,7 @@ Function Start_Installation_HP {
         Write-Host "Script-INFO: Script will proceed without HP Support Assistant" -ForegroundColor white -BackgroundColor Yellow
         Start-Sleep 5
     }
-        
-    
-    try {
-        Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
-        $client = new-object System.Net.Webclient
-        $client.DownloadFile("https://github.com/cron1s/w11install/archive/refs/heads/main.zip", "$TempDIRFADATA\Pack.zip")
-        Expand-Archive -Path "$TempDIRFADATA\pack.zip" -DestinationPath $TempDIRFADATA -Force
-        
-        Start-Sleep 10
-        Write-Host "Script-Info: Modification File Download success" -ForegroundColor white -BackgroundColor Green
-        Write-Host "Script-Info: Beginning to applying start.bin" -ForegroundColor white -BackgroundColor Green
-        $Current_User_Name = [System.Environment]::UserName
-        $Current_User_ModificationFile = "C:\Users\$Current_User_Name"
-        robocopy "$Start_bin_Dir" "$Default_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_defaul.txt
-        robocopy "$Start_bin_Dir" "$Current_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_current.txt
 
-    }
-    catch {
-        Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
-    }
 
 }
 
