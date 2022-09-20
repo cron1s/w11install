@@ -2,19 +2,26 @@ Clear-Host
 
 #By PLE
 
+#TODO
+#LAYOUT VON NAS ENTFERNEN
+
 #Global Param
 $regex = "(ftp\.hp\.com/pub/softpaq/.*?/.*?exe)"
 $TempDIR = "C:\Temp"
 $TempDIRFA = "C:\Temp\1829371298037"
+$TempDIRFADATA = "C:\Temp\1829371298037\data"
 $TempDIRFAEXE = "C:\Temp\1829371298037\exe"
-$Tempdw01 = "C:\Temp\1829371298037\dw01.txt"
-$Tempdw02 = "C:\Temp\1829371298037\dw02.txt"
-$Tempdw03 = "C:\Temp\1829371298037\dw03.txt"
-$Tempdw04 = "C:\Temp\1829371298037\dw04.txt"
-$Tempdw05 = "C:\Temp\1829371298037\dw05.txt"
-$Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
-$Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
-$Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
+$Tempdw01 = "C:\Temp\1829371298037\data\dw01.txt"
+$Tempdw02 = "C:\Temp\1829371298037\data\dw02.txt"
+$Tempdw03 = "C:\Temp\1829371298037\data\dw03.txt"
+$Tempdw04 = "C:\Temp\1829371298037\data\dw04.txt"
+$Tempdw05 = "C:\Temp\1829371298037\data\dw05.txt"
+$Tempdw06 = "C:\Temp\1829371298037\data\dw06.txt"
+$Tempdw07 = "C:\Temp\1829371298037\data\dw07.txt"
+$Tempdw08 = "C:\Temp\1829371298037\data\dw08.txt"
+$SL_Dest = "C:\Temp\"
+$SL_Src = "" 
+$StartLayout_JSON = "C:\Temp\StartLayout.json"
 
 function Show-Menu {
     param (
@@ -41,30 +48,40 @@ function Show-Menu {
 Function Add_Hostname {
     $NewComputerName = Read-Host [Enter new hostname]
     Rename-Computer -NewName $NewComputerName
+    Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
+    Restart-Computer -Force -Wait 5
 }
 Function Join_Domain {
-    $NewDomain = Read-Host [Enter new domain to join]
+    Write-Host "Script-INFO: Joining rubnergroup.local" -ForegroundColor white -BackgroundColor green
+    $NewDomain = "rubnergroup.local"
     Add-Computer -DomainName $NewDomain
+    Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
+    Restart-Computer -Force -Wait 5
 }
 Function Join_Workgroup {
     Write-Host pass
 }
 Function Start_Installation_HP {
-    write-Host HP Notebook gets HP features -ForegroundColor white -BackgroundColor green
+    write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
     write-Host ..........................................................................
-    write-Host "Starting transfering the HP Support Assistant..."
+    write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
 
     if (Test-Path -Path $TempDIR){
-        Write-Host Script-INFO: C:\Temp exists -ForegroundColor Green
+        Write-Host "Script-INFO: C:\Temp exists" -ForegroundColor Green
     }
     else {
         New-Item $TempDIR -ItemType Directory
-        Write-Host Script-INFO: C:\Temp Directory created -ForegroundColor Green
+        Write-Host "Script-INFO: C:\Temp Directory created" -ForegroundColor Green
     }
     if (Test-Path -Path $TempDIRFA){
     }
     else {
         New-Item $TempDIRFA -ItemType Directory 
+    }
+    if (Test-Path -Path $TempDIRFADATA){
+    }
+    else {
+        New-Item $TempDIRFADATA -ItemType Directory 
     }
     if (Test-Path -Path $TempDIRFAEXE){
     }
@@ -72,7 +89,7 @@ Function Start_Installation_HP {
         New-Item $TempDIRFAEXE -ItemType Directory 
     }
     
-    Write-Host Script-INFO: Getting Information about the HP Support Assistant -ForegroundColor Green
+    Write-Host "Script-INFO: Getting Information about the HP Support Assistant" -ForegroundColor Green
 
     $hp = Invoke-WebRequest "https://hpsa-redirectors.hpcloud.hp.com/common/hpsaredirector.js?_=1663262489609" -UseBasicParsing -OutFile $Tempdw01
     
@@ -86,9 +103,9 @@ Function Start_Installation_HP {
         Out-File $Tempdw05
     Get-Content $Tempdw05 | foreach {'https://' + $_} | Out-File $Tempdw06
 
-    Write-Host Script-INFO: "Could fetch data from HP Servers" -ForegroundColor Green
+    Write-Host "Script-INFO: Could fetch data from HP Servers" -ForegroundColor Green
     Write-Host ..........................................................................
-    Write-Host Script-INFO: Download is starting soon -ForegroundColor Green
+    Write-Host "Script-INFO: Download is starting soon" -ForegroundColor Green
     start-sleep 3
     try {
         $hp_sa = Get-Content -Path $Tempdw06
@@ -97,26 +114,27 @@ Function Start_Installation_HP {
         (gc $Tempdw07) | ? {$_.trim() -ne "" } | set-content $Tempdw07
         Get-Content $Tempdw07 -tail 1 > $Tempdw08
 
-        
-        Write-Host Script-INFO: Download successfull. Filelocation: C:\Temp -ForegroundColor Green
+        Write-Host "Script-INFO: Download successfull. Filelocation: C:\Temp" -ForegroundColor Green
         Write-Host ..........................................................................
-        Write-Host Script-INFO: Installation of HP Support Assistant will start now -ForegroundColor Green
+        Write-Host "Script-INFO: Installation of HP Support Assistant will start now" -ForegroundColor Green
         $EXE = Get-Content -Path $Tempdw08
         Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
         Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
     }
     catch {
         Write-Host "Script-INFO: Error downloading Information Support Assistant" -ForegroundColor white -BackgroundColor red
-        exit
+        Write-Host "Script-INFO: Script will proceed without HP Support Assistant" -ForegroundColor white -BackgroundColor Yellow
+        Start-Sleep 5
     }
         
     
-
     try {
-        Export-StartLayout -Path "$TempDIRFA\LayoutModification.json" 
+        Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
+        Start-BitsTransfer -Source  -Destination $TempDIRFADATA
+
     }
     catch {
-        Write-Host 1
+        Write-Host "Script-INFO: Error with Star-Pin configuration" -ForegroundColor white -BackgroundColor red
     }
 
 }
