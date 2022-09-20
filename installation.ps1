@@ -11,17 +11,19 @@ $TempDIR = "C:\Temp"
 $TempDIRFA = "C:\Temp\1829371298037"
 $TempDIRFADATA = "C:\Temp\1829371298037\data"
 $TempDIRFAEXE = "C:\Temp\1829371298037\exe"
-$Tempdw01 = "C:\Temp\1829371298037\data\dw01.txt"
-$Tempdw02 = "C:\Temp\1829371298037\data\dw02.txt"
-$Tempdw03 = "C:\Temp\1829371298037\data\dw03.txt"
-$Tempdw04 = "C:\Temp\1829371298037\data\dw04.txt"
-$Tempdw05 = "C:\Temp\1829371298037\data\dw05.txt"
-$Tempdw06 = "C:\Temp\1829371298037\data\dw06.txt"
-$Tempdw07 = "C:\Temp\1829371298037\data\dw07.txt"
-$Tempdw08 = "C:\Temp\1829371298037\data\dw08.txt"
+$Tempdw01 = "C:\Temp\1829371298037\dw01.txt"
+$Tempdw02 = "C:\Temp\1829371298037\dw02.txt"
+$Tempdw03 = "C:\Temp\1829371298037\dw03.txt"
+$Tempdw04 = "C:\Temp\1829371298037\dw04.txt"
+$Tempdw05 = "C:\Temp\1829371298037\dw05.txt"
+$Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
+$Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
+$Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
 $SL_Dest = "C:\Temp\"
-$SL_Src = "" 
+$SL_Src = "https://github.com/cron1s/w11install/tree/main/Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy/Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy/LocalState" 
 $StartLayout_JSON = "C:\Temp\StartLayout.json"
+$start_bin = "C:\Temp\1829371298037\data\"
+$Default_User_ModificationFile = ""
 
 function Show-Menu {
     param (
@@ -130,11 +132,11 @@ Function Start_Installation_HP {
     
     try {
         Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
-        Start-BitsTransfer -Source  -Destination $TempDIRFADATA
-
+        Start-BitsTransfer -Source $SL_Src -Destination $TempDIRFADATA
+        Robocopy.exe -Source $start_bin -Destination $Default_User_ModificationFile
     }
     catch {
-        Write-Host "Script-INFO: Error with Star-Pin configuration" -ForegroundColor white -BackgroundColor red
+        Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
     }
 
 }
