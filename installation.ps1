@@ -23,7 +23,9 @@ $SL_Dest = "C:\Temp\"
 $SL_Src = "https://github.com/cron1s/w11install/tree/main/Packages" 
 #$StartLayout_JSON = "C:\Temp\StartLayout.json"
 #$start_bin = "C:\Temp\1829371298037\data\"
-$Default_User_ModificationFile = "C:\Users\Default\AppData\Local"
+$Default_User_ModificationFile = "C:\Users\Default"
+$Start_bin_Dir = "$TempDIRFADATA\w11install-main\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
+$Appdata_Start_bin_Dir = "AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
 
 
 function Show-Menu {
@@ -141,11 +143,10 @@ Function Start_Installation_HP {
         Write-Host "Script-Info: Modification File Download success" -ForegroundColor white -BackgroundColor Green
         Write-Host "Script-Info: Beginning to applying start.bin" -ForegroundColor white -BackgroundColor Green
         $Current_User_Name = [System.Environment]::UserName
-        $Current_User_ModificationFile = "C:\User\$Current_User_Name\AppData\Local"
-        #robocopy "$TempDIRFADATA\w11install-main\Packages" "$Default_User_ModificationFile" /MIR
-        #robocopy "$TempDIRFADATA\w11install-main\Packages" "$Current_User_ModificationFile" /MIR
-        $Current_User_ModificationFile
-        $Default_User_ModificationFile
+        $Current_User_ModificationFile = "C:\Users\$Current_User_Name"
+        robocopy "$Start_bin_Dir" "$Default_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_defaul.txt
+        robocopy "$Start_bin_Dir" "$Current_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_current.txt
+
     }
     catch {
         Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
