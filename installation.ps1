@@ -20,10 +20,10 @@ $Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
 $Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
 $Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
 $SL_Dest = "C:\Temp\"
-$SL_Src = "https://github.com/cron1s/w11install/tree/main/Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy/Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy/LocalState" 
-$StartLayout_JSON = "C:\Temp\StartLayout.json"
-$start_bin = "C:\Temp\1829371298037\data\"
-$Default_User_ModificationFile = ""
+$SL_Src = "https://github.com/cron1s/w11install/tree/main/Packages" 
+#$StartLayout_JSON = "C:\Temp\StartLayout.json"
+#$start_bin = "C:\Temp\1829371298037\data\"
+$Default_User_ModificationFile = "C:\Users\Default\AppData\Local"
 
 function Show-Menu {
     param (
@@ -120,7 +120,7 @@ Function Start_Installation_HP {
         Write-Host ..........................................................................
         Write-Host "Script-INFO: Installation of HP Support Assistant will start now" -ForegroundColor Green
         $EXE = Get-Content -Path $Tempdw08
-        Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
+        #Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
         Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
     }
     catch {
@@ -132,8 +132,14 @@ Function Start_Installation_HP {
     
     try {
         Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
-        Start-BitsTransfer -Source $SL_Src -Destination $TempDIRFADATA
-        Robocopy.exe -Source $start_bin -Destination $Default_User_ModificationFile
+        $client = new-object System.Net.Webclient
+        $client.DownloadFile("https://github.com/cron1s/w11install/archive/refs/heads/main.zip", "$TempDIRFADATA\Pack.zip")
+        Expand-Archive -Path "$TempDIRFADATA\pack.zip" -DestinationPath $TempDIRFADATA -Force
+        
+        Start-Sleep 10
+        Write-Host "Script-Info: Modification File Download success" -ForegroundColor white -BackgroundColor Green
+        Write-Host "Script-Info: Beginning to applying start.bin" -ForegroundColor white -BackgroundColor Green
+        robocopy "$TempDIRFADATA\w11install-main\Packages" "$Default_User_ModificationFile" /MIR
     }
     catch {
         Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
