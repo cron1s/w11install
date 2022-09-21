@@ -18,9 +18,14 @@ $Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
 $Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
 $Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
 $Default_User_ModificationFile = "C:\Users\Default"
+$Admin_User_ModificationFile = "$TempDIRFADATA\w11-install-main\Users"
 $Start_bin_Dir = "$TempDIRFADATA\w11install-main\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
 $Appdata_Start_bin_Dir = "AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
+$User_Dir = "C:\Users"
 $Start_bin_Source = "https://github.com/cron1s/w11install/archive/refs/heads/main.zip"
+$Computername = hostname
+$Domainname = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain
+$Current_User_Name = [System.Environment]::UserName
 
 function Show-Menu {
     param (
@@ -35,11 +40,11 @@ function Show-Menu {
     Write-Host ............................................................
     Write-Host "================ $Title ================"
     Write-Host "1: Press '1' to Add Hostname"
-    Write-Host "2: Press '2' to Join Domain RubnerGroup.Local"
+    Write-Host "2: Press '2' to Join Domain"
     Write-Host "3: Press '3' to Join Workgroup"
     Write-Host "4: Press '4' for Step 1"
-    Write-Host "5: Press '5' to Step 2"
-    Write-Host "6: Press '6' to Step 3"
+    Write-Host "5: Press '5' for Step 2"
+    Write-Host "6: Press '6' for Step 3"
     Write-Host "Q: Press 'Q' to quit."
     Write-Host
 }
@@ -58,7 +63,7 @@ Function Join_Domain {
     Restart-Computer -Force -Wait 5
 }
 Function Join_Workgroup {
-    Write-Host "Script-INFO: Joining rubnergroup.local" -ForegroundColor white -BackgroundColor green
+    Write-Host "Script-INFO: Joining Workgroup" -ForegroundColor white -BackgroundColor green
     $NewDomain = "workgroup"
     Add-Computer -DomainName $NewDomain
     Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
@@ -66,6 +71,17 @@ Function Join_Workgroup {
 }
 Function First_Step {
     
+    Write-Host "For this Step you need following:"
+    Write-Host "- You've joined the domain (Currently set: $Domainname"
+    Write-Host "- You've set the Computername (Currently set: $Computername)"
+    Write-Host "- The local Administrator-Password"
+    Write-Host ...............................................................................
+    $confirmation = Read-Host "If you did all these steps above, you can answer 'y' for yes:"
+    if ($confirmation -ne 'y') {
+        break
+    }
+
+
 
     if (Test-Path -Path $TempDIR){
         Write-Host "Script-INFO: C:\Temp exists" -ForegroundColor Green
@@ -100,10 +116,31 @@ Function First_Step {
         Start-Sleep 10
         Write-Host "Script-Info: Modification File Download success" -ForegroundColor white -BackgroundColor Green
         Write-Host "Script-Info: Beginning to applying start.bin" -ForegroundColor white -BackgroundColor Green
-        $Current_User_Name = [System.Environment]::UserName
         $Current_User_ModificationFile = "C:\Users\$Current_User_Name"
-        robocopy "$Start_bin_Dir" "$Default_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_defaul.txt
-        robocopy "$Start_bin_Dir" "$Current_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_current.txt
+        try {
+            Write-Host "Script-Info: Beginning to applying start.bin to DefaultUser" -ForegroundColor Green
+            robocopy "$Start_bin_Dir" "$Default_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_default.txt
+        }
+        catch {
+            Write-Host "Script-Info: Error applying start_bin to DefaultUser" -ForegroundColor white -BackgroundColor Red
+        }
+        try {
+            Write-Host "Script-Info: Beginning to applying start.bin to CurrentUser" -ForegroundColor Green
+            robocopy "$Start_bin_Dir" "$Current_User_ModificationFile\$Appdata_Start_bin_Dir" /MIR /LOG:$TempDIRFADATA\log_current.txt
+        }
+        catch {
+            Write-Host "Script-Info: Error applying start_bin to CurrentUser" -ForegroundColor white -BackgroundColor Red
+        }
+        try {
+            Write-Host "Script-Info: Beginning to applying start.bin to AdministratorUser" -ForegroundColor Green
+            robocopy "$Admin_User_ModificationFile" "$User_Dir" /MIR /LOG:$TempDIRFADATA\log_admin.txt
+        }
+        catch {
+            Write-Host "Script-Info: Error applying start_bin to AdministratorUser" -ForegroundColor white -BackgroundColor Red
+        }
+        
+        
+        
 
     }
     catch {
@@ -112,10 +149,10 @@ Function First_Step {
 
     #Activiating the Administrator Account and Set Password
     try {
-        Get-LocalUser -Name "Administrator" | Enable-LocalUser
-        $Admin_Pass_PA = Read-Host -AsSecureString [Enter new hostname]
-        Get-LocalUser -Name "Administrator" | Set-LocalUser -Password $Admin_Pass_PA -PasswordNeverExpires -AccountNeverExpires
-        Write-Host "Script-INFO: Administrator created" -ForegroundColor white -BackgroundColor Green
+        Enable-LocalUser -Name "Administrator"
+        $Admin_Pass_PA = Read-Host -AsSecureString "Enter Password for Administrator `nComputername: $Computername"
+        Set-LocalUser -Name "Administrator" -Password $Admin_Pass_PA -PasswordNeverExpires 1 -AccountNeverExpires
+        Write-Host "Script-INFO: Administrator activated" -ForegroundColor white -BackgroundColor Green
         Start-Sleep 3
     }
     catch {
@@ -127,8 +164,7 @@ Function First_Step {
     #Installation of HP Support Assistant
     Write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
     Write-Host ..........................................................................
-    Write-Host "Script-INFO: HP Support Assistant is already installed" -ForegroundColor white -BackgroundColor green
-    Write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
+    Write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white
 
     Write-Host "Script-INFO: Getting Information about the HP Support Assistant" -ForegroundColor Green
 
@@ -158,9 +194,10 @@ Function First_Step {
         Write-Host "Script-INFO: Download successfull. Filelocation: C:\Temp" -ForegroundColor Green
         Write-Host ..........................................................................
         Write-Host "Script-INFO: Installation of HP Support Assistant will start now" -ForegroundColor Green
+        Write-Host "Script-INFO: Please have patience" -ForegroundColor Green
+        Start-Sleep 3
         $EXE = Get-Content -Path $Tempdw08
-        Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
-        #Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
+        Start-Process -FilePath $EXE -Verb runAs -Wait 
     }
     catch {
         Write-Host "Script-INFO: Error downloading Information Support Assistant" -ForegroundColor white -BackgroundColor red
@@ -168,29 +205,47 @@ Function First_Step {
         Start-Sleep 5
     }
     Write-Host ...........................................................................................................
-    Write-Host "Script-INFO: This part is finished. Cleanup-Process will beginn now and then it'll logoff from this account."
-    Write-Host "Script-INFO: Please login to the Administrator-Profile and proceed with Step 2"
+    Write-Host "Script-INFO: This part is finished. `nCleanup-Process will beginn now."
     Write-Host ...........................................................................................................
     Start-Sleep 7
 
     try {
-        Write-Host "Script-INFO: Cleanup is in progress" -ForegroundColor white -BackgroundColor Green
+        Write-Host "Script-INFO: Cleanup is in progress" -ForegroundColor white
         Start-Sleep 3
-        Remove-Item $TempDIR -Force
-        New-Item $TempDIR -ItemType Directory
+        Remove-Item -LiteralPath "$TempDIRFA" -Force -Recurse
+        Write-Host "Script-INFO: Cleanup success" -ForegroundColor white -BackgroundColor Green
+    }
+    catch {
+        Write-Host "Script-INFO: Problem with cleanup" -ForegroundColor white -BackgroundColor Green
+    }
+
+    try {
+        Write-Host "Script-INFO: Please login to the Administrator-Profile and proceed with Step 2" -ForegroundColor Red
+        $confirmation = Read-Host "Do you want to log off? `nPress 'y' for yes or anything else for no"
+        if ($confirmation -eq 'y') {
+            Write-Host "Script-INFO: Logging off..."
+            Start-Sleep 10
+            quser | Select-Object -Skip 1 | ForEach-Object {
+                $id = ($_ -split ' +')[-5]
+                logoff $id 
+            }
+        }
+        else {
+            break
+        }
 
     }
     catch {
-        {1:<#Do this if a terminating exception happens#>}
+        Write-Host "Script-INFO: Couldn't log off user" -ForegroundColor white -BackgroundColor Red
     }
 
 }
 
 Function Second_Step {
-    pass
+    
 }
 Function Third_Step {
-    pass
+    
 }
 
 do {
