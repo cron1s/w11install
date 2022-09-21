@@ -152,5 +152,4 @@ cython_debug/
 .idea/
 
 #Custom
-test.ps1
-test1.ps1
+Test-Packages/
