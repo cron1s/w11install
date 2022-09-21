@@ -2,8 +2,6 @@ Clear-Host
 
 #By PLE
 
-#TODO
-#LAYOUT VON NAS ENTFERNEN
 
 #Global Param
 $regex = "(ftp\.hp\.com/pub/softpaq/.*?/.*?exe)"
@@ -19,14 +17,10 @@ $Tempdw05 = "C:\Temp\1829371298037\dw05.txt"
 $Tempdw06 = "C:\Temp\1829371298037\dw06.txt"
 $Tempdw07 = "C:\Temp\1829371298037\dw07.txt"
 $Tempdw08 = "C:\Temp\1829371298037\dw08.txt"
-$SL_Dest = "C:\Temp\"
-$SL_Src = "https://github.com/cron1s/w11install/tree/main/Packages" 
-#$StartLayout_JSON = "C:\Temp\StartLayout.json"
-#$start_bin = "C:\Temp\1829371298037\data\"
 $Default_User_ModificationFile = "C:\Users\Default"
 $Start_bin_Dir = "$TempDIRFADATA\w11install-main\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
 $Appdata_Start_bin_Dir = "AppData\Local\Packages\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\LocalState"
-
+$Start_bin_Source = "https://github.com/cron1s/w11install/archive/refs/heads/main.zip"
 
 function Show-Menu {
     param (
@@ -43,9 +37,9 @@ function Show-Menu {
     Write-Host "1: Press '1' to Add Hostname"
     Write-Host "2: Press '2' to Join Domain RubnerGroup.Local"
     Write-Host "3: Press '3' to Join Workgroup"
-    Write-Host "4: Press '4' to Start Installation (HP)"
-    Write-Host "5: Press '5' to Start Installation (Lenovo)"
-    Write-Host "6: Press '6' to Start Installation (Microsoft Cooperation)"
+    Write-Host "4: Press '4' for Step 1"
+    Write-Host "5: Press '5' to Step 2"
+    Write-Host "6: Press '6' to Step 3"
     Write-Host "Q: Press 'Q' to quit."
     Write-Host
 }
@@ -57,8 +51,8 @@ Function Add_Hostname {
     Restart-Computer -Force -Wait 5
 }
 Function Join_Domain {
-    Write-Host "Script-INFO: Joining rubnergroup.local" -ForegroundColor white -BackgroundColor green
-    $NewDomain = "rubnergroup.local"
+    Write-Host "Script-INFO: Join domain" -ForegroundColor white -BackgroundColor green
+    $NewDomain = Read-Host [Enter new domain]
     Add-Computer -DomainName $NewDomain
     Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
     Restart-Computer -Force -Wait 5
@@ -70,7 +64,7 @@ Function Join_Workgroup {
     Write-Host "Script-INFO: Restarting..." -ForegroundColor white -BackgroundColor green
     Restart-Computer -Force -Wait 5
 }
-Function Start_Installation_HP {
+Function First_Step {
     
 
     if (Test-Path -Path $TempDIR){
@@ -96,13 +90,11 @@ Function Start_Installation_HP {
         New-Item $TempDIRFAEXE -ItemType Directory 
     }
     
-    
-        
-    
+    #Start.bin Configuration on Local Logged-On User and Default User
     try {
         Write-Host "Script-Info: Getting Modification File for the Start Layout" -ForegroundColor white -BackgroundColor Green
         $client = new-object System.Net.Webclient
-        $client.DownloadFile("https://github.com/cron1s/w11install/archive/refs/heads/main.zip", "$TempDIRFADATA\Pack.zip")
+        $client.DownloadFile("$Start_bin_Source", "$TempDIRFADATA\Pack.zip")
         Expand-Archive -Path "$TempDIRFADATA\pack.zip" -DestinationPath $TempDIRFADATA -Force
         
         Start-Sleep 10
@@ -118,9 +110,25 @@ Function Start_Installation_HP {
         Write-Host "Script-INFO: Modification File is not available. Exiting Modification" -ForegroundColor white -BackgroundColor red
     }
 
-    write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
-    write-Host ..........................................................................
-    write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
+    #Activiating the Administrator Account and Set Password
+    try {
+        Get-LocalUser -Name "Administrator" | Enable-LocalUser
+        $Admin_Pass_PA = Read-Host -AsSecureString [Enter new hostname]
+        Get-LocalUser -Name "Administrator" | Set-LocalUser -Password $Admin_Pass_PA -PasswordNeverExpires -AccountNeverExpires
+        Write-Host "Script-INFO: Administrator created" -ForegroundColor white -BackgroundColor Green
+        Start-Sleep 3
+    }
+    catch {
+        Write-Host "Script-INFO: Error activating administrator" -ForegroundColor white -BackgroundColor red
+    }
+
+    
+
+    #Installation of HP Support Assistant
+    Write-Host "Script-INFO: HP Notebook gets HP features" -ForegroundColor white -BackgroundColor green
+    Write-Host ..........................................................................
+    Write-Host "Script-INFO: HP Support Assistant is already installed" -ForegroundColor white -BackgroundColor green
+    Write-Host "Script-INFO: Starting transfering the HP Support Assistant..." -ForegroundColor white -BackgroundColor green
 
     Write-Host "Script-INFO: Getting Information about the HP Support Assistant" -ForegroundColor Green
 
@@ -152,26 +160,37 @@ Function Start_Installation_HP {
         Write-Host "Script-INFO: Installation of HP Support Assistant will start now" -ForegroundColor Green
         $EXE = Get-Content -Path $Tempdw08
         Start-Process -FilePath $EXE -Verb runAs -ArgumentList '/s','/v"/qn"' -passthru
-        Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
+        #Remove-Item "$TempDIRFA\*.*" -Force | Where { ! $_.PSIsContainer } 
     }
     catch {
         Write-Host "Script-INFO: Error downloading Information Support Assistant" -ForegroundColor white -BackgroundColor red
         Write-Host "Script-INFO: Script will proceed without HP Support Assistant" -ForegroundColor white -BackgroundColor Yellow
         Start-Sleep 5
     }
+    Write-Host ...........................................................................................................
+    Write-Host "Script-INFO: This part is finished. Cleanup-Process will beginn now and then it'll logoff from this account."
+    Write-Host "Script-INFO: Please login to the Administrator-Profile and proceed with Step 2"
+    Write-Host ...........................................................................................................
+    Start-Sleep 7
 
+    try {
+        Write-Host "Script-INFO: Cleanup is in progress" -ForegroundColor white -BackgroundColor Green
+        Start-Sleep 3
+        Remove-Item $TempDIR -Force
+        New-Item $TempDIR -ItemType Directory
+
+    }
+    catch {
+        {1:<#Do this if a terminating exception happens#>}
+    }
 
 }
 
-Function Start_Installation_Lenovo {
+Function Second_Step {
     pass
 }
-Function Start_Installation_MS {
+Function Third_Step {
     pass
-}
-
-function Uninstall_Software {
-    Write-Host  Test
 }
 
 do {
@@ -182,9 +201,9 @@ do {
         '1' {Add_Hostname;break}
         '2' {Join_Domain;break}
         '3' {Join_Workgroup;break}
-        '4' {Start_Installation_HP;break}
-        '5' {Start_Installation_Lenovo;break}
-        '6' {Start_Installation_MS;break}
+        '4' {First_Step;break}
+        '5' {Second_Step;break}
+        '6' {Third_Step;break}
         'q' {break}
         default{
             Write-Host "You entered '$input'" -ForegroundColor Red
